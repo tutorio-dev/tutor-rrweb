@@ -1,10 +1,9 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@2.3.0/schema.json",
-  "changelog": ["@changesets/changelog-github", { "repo": "rrweb-io/rrweb" }],
+  "changelog": ["@changesets/changelog-github", { "repo": "tutorio-dev/tutor-rrweb" }],
   "commit": false,
   "fixed": [
     [
-      "rrweb",
       "rrweb-snapshot",
       "rrdom",
       "rrdom-nodejs",
