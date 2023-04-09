@@ -1,5 +1,5 @@
 ---
-'rrweb': patch
+'@tutor/rrweb': patch
 ---
 
 Fix: some websites rebuild imcomplete

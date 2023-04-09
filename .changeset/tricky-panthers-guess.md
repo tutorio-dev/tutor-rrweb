@@ -2,4 +2,4 @@
 'rrvideo': patch
 ---
 
-Refactor: Move rrvideo to rrweb's monorepo
+Refactor: Move rrvideo to @tutor/rrweb's monorepo

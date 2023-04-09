@@ -1,5 +1,5 @@
 ---
-'rrweb': patch
+'@tutor/rrweb': patch
 ---
 
 Add missing change logs manually. In the next version, all change logs will be generated automatically.

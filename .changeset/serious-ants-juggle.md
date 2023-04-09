@@ -1,7 +1,7 @@
 ---
 'rrdom': major
 'rrdom-nodejs': major
-'rrweb': patch
+'@tutor/rrweb': patch
 ---
 
 Refactor: Improve performance by 80% in a super large benchmark case.

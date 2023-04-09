@@ -1,6 +1,6 @@
 ---
 'rrweb-snapshot': patch
-'rrweb': patch
+'@tutor/rrweb': patch
 ---
 
 fix: Explicitly handle `null` attribute values
