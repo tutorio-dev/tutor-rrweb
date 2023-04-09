@@ -1,5 +1,11 @@
 # rrweb
 
+## 0.0.4
+
+### Patch Changes
+
+- [#1156](https://github.com/rrweb-io/rrweb/pull/1156) [`e65465e`](https://github.com/tutorio-dev/tutor-rrweb/commit/e65465e808178a80a4ba84970f02162ba812955e) Thanks [@Code-Crash](https://github.com/Code-Crash)! - Fix the statement which is getting changed by Microbundle
+
 ## 2.0.0-alpha.7
 
 ### Minor Changes
