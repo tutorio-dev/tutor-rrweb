@@ -1,5 +1,12 @@
 # @rrweb/types
 
+## 2.0.0-alpha.8
+
+### Patch Changes
+
+- Updated dependencies [[`d0fdc0f`](https://github.com/tutorio-dev/tutor-rrweb/commit/d0fdc0f273bb156a1faab4782b40fbec8dccf915)]:
+  - rrweb-snapshot@2.0.0-alpha.8
+
 ## 2.0.0-alpha.7
 
 ### Patch Changes

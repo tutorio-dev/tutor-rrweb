@@ -1,5 +1,18 @@
 # rrweb
 
+## 0.0.4-alpha.0
+
+### Patch Changes
+
+- [#1198](https://github.com/rrweb-io/rrweb/pull/1198) [`b5e30cf`](https://github.com/tutorio-dev/tutor-rrweb/commit/b5e30cf6cc7f5335d674ef1917a92bdf2895fe9e) Thanks [@charliegracie](https://github.com/charliegracie)! - Reset the finished flag in Controller `goto` instead of `handleProgressClick` so that it is properly handled if `goto` is called directly.
+
+- [#1184](https://github.com/rrweb-io/rrweb/pull/1184) [`aa79db7`](https://github.com/tutorio-dev/tutor-rrweb/commit/aa79db7568578ea3a413292450cd64f07481e5dd) Thanks [@mydea](https://github.com/mydea)! - fix: Ensure getting the type of inputs works
+
+- Updated dependencies [[`d0fdc0f`](https://github.com/tutorio-dev/tutor-rrweb/commit/d0fdc0f273bb156a1faab4782b40fbec8dccf915)]:
+  - rrweb-snapshot@2.0.0-alpha.8
+  - rrdom@2.0.0-alpha.8
+  - @rrweb/types@2.0.0-alpha.8
+
 ## 2.0.0-alpha.7
 
 ### Minor Changes

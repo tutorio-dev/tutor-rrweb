@@ -9,11 +9,13 @@
     "rrweb-snapshot": "2.0.0-alpha.4",
     "@rrweb/types": "2.0.0-alpha.4",
     "@rrweb/web-extension": "2.0.0-alpha.4",
-    "rrvideo": "2.0.0-alpha.6"
+    "rrvideo": "2.0.0-alpha.6",
+    "@tutor/rrweb": "0.0.3"
   },
   "changesets": [
     "calm-bulldogs-speak",
     "chatty-cherries-train",
+    "controller-finish-flag",
     "eight-terms-hunt",
     "fast-chefs-smell",
     "five-peas-lay",
@@ -25,8 +27,10 @@
     "mighty-frogs-sparkle",
     "nervous-poets-grin",
     "new-snakes-call",
+    "nice-pugs-reply",
     "old-dryers-hide",
     "pretty-plums-rescue",
+    "pretty-schools-remember",
     "proud-experts-jam",
     "real-masks-explode",
     "real-trains-switch",
