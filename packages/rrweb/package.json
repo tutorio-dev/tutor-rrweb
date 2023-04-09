@@ -1,6 +1,6 @@
 {
-  "name": "@tutor/rrweb",
-  "version": "0.0.3",
+  "name": "@tutorio/rrweb",
+  "version": "0.0.2",
   "description": "record and replay the web",
   "scripts": {
     "prepare": "npm run prepack",
