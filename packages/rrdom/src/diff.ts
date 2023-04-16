@@ -341,19 +341,14 @@ function diffProps(
     } else {
       oldTree.setAttribute && oldTree.setAttribute(name, newValue);
     }
-
   }
 
-  if(oldAttributes){
+  if (oldAttributes) {
     for (const { name } of Array.from(oldAttributes))
-    if (!(name in newAttributes)) oldTree.removeAttribute(name);
-  }else{
-    console.error('oldAttributes不存在',oldAttributes);
+      if (!(name in newAttributes)) oldTree.removeAttribute(name);
+  } else {
+    console.error('oldAttributes不存在', oldAttributes);
   }
-
-  
-
-  
 
   newTree.scrollLeft && (oldTree.scrollLeft = newTree.scrollLeft);
   newTree.scrollTop && (oldTree.scrollTop = newTree.scrollTop);

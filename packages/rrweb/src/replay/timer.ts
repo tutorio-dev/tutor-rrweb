@@ -26,7 +26,7 @@ export class Timer {
     this.actions = actions;
     this.speed = config.speed;
   }
-  
+
   public set willInteraction(value: boolean) {
     this.willInInteraction = value;
   }
@@ -71,7 +71,7 @@ export class Timer {
       const action = this.actions[0];
 
       if (this.timeOffset >= action.delay) {
-        if (this.willInInteraction && action.event && action.event?.data)  {
+        if (this.willInInteraction && action.event && action.event?.data) {
           //处于交互模式时，下次暂停
           //skipInteractive 为真的情况下，此次交互事件不用暂停
           // console.error(action.event, 'inInteractionCallback-----2');
