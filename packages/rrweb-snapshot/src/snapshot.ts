@@ -241,7 +241,6 @@ function getHref() {
   // a.href = '';
   // return a.href;
   return location.origin + location.pathname;
-
 }
 
 export function transformAttribute(
@@ -559,7 +558,7 @@ function getRootId(doc: Document, mirror: Mirror): number | undefined {
   return docId === 1 ? undefined : docId;
 }
 
-function blobToBase64(blob:Blob): Promise<string> {
+function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, _) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result as string);
@@ -567,13 +566,16 @@ function blobToBase64(blob:Blob): Promise<string> {
   });
 }
 
-async function getResourceByUrl(url:string, encoding: 'base64' | 'string'): Promise<string>{
+async function getResourceByUrl(
+  url: string,
+  encoding: 'base64' | 'string',
+): Promise<string> {
   if (!url) {
     throw new Error('invalid url');
   }
   const response = await fetch(url, {
     method: 'get',
-    cache: 'force-cache'
+    cache: 'force-cache',
   });
   if (!response.ok) {
     throw new Error('Cannot fetch resource');
@@ -582,7 +584,7 @@ async function getResourceByUrl(url:string, encoding: 'base64' | 'string'): Prom
     const base64 = await blobToBase64(await response.blob());
     return base64;
   }
-  const text =  await response.text();
+  const text = await response.text();
   return text;
 }
 
@@ -611,11 +613,10 @@ function serializeTextNode(
         // to _only_ include the current rule(s) added by the text node.
         // So we'll be conservative and keep textContent as-is.
       } else if ((n.parentNode as HTMLStyleElement).sheet?.cssRules) {
-               // 总是使用 TextContent
+        // 总是使用 TextContent
         // textContent = stringifyStyleSheet(
         //   (n.parentNode as HTMLStyleElement).sheet!,
         // );
-
       }
     } catch (err) {
       console.warn(
@@ -710,13 +711,16 @@ function serializeElementNode(
       delete attributes.rel;
       delete attributes.href;
       attributes._cssText = absoluteToStylesheet(cssText, stylesheet!.href!);
-    }else {
+    } else {
       // fallback
-      getResourceByUrl(styleHref, 'string').then((data)=> {
-        attributes._cssText = absoluteToStylesheet(data, styleHref);
-        // console.log('css fetch fallback', styleHref);
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-      }, function(error) {});
+      getResourceByUrl(styleHref, 'string').then(
+        (data) => {
+          attributes._cssText = absoluteToStylesheet(data, styleHref);
+          // console.log('css fetch fallback', styleHref);
+          // eslint-disable-next-line @typescript-eslint/no-empty-function
+        },
+        function (error) {},
+      );
     }
   }
   // dynamic stylesheet
@@ -806,12 +810,14 @@ function serializeElementNode(
 
     const image = n as HTMLImageElement;
     // const start = Date.now();
-    getResourceByUrl(image.src, 'base64').then((base64)=> {
-      image.setAttribute('rr_dataURL', base64)
-      // console.log('imageResolve', Date.now() - start);
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    }, function(error) {});
-   
+    getResourceByUrl(image.src, 'base64').then(
+      (base64) => {
+        image.setAttribute('rr_dataURL', base64);
+        // console.log('imageResolve', Date.now() - start);
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+      },
+      function (error) {},
+    );
 
     // const oldValue = image.crossOrigin;
     // image.crossOrigin = 'anonymous';

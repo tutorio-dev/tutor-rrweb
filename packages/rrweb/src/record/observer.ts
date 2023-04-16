@@ -205,7 +205,7 @@ function initMoveObserver({
 
   const updatePosition2 = throttle<MouseEvent | TouchEvent | DragEvent>(
     (evt) => {
-      console.error('被拖动',evt)
+      console.error('被拖动', evt);
       const target = getEventTarget(evt);
       const { clientX, clientY } = isTouchEvent(evt)
         ? evt.changedTouches[0]
@@ -218,7 +218,7 @@ function initMoveObserver({
         y: clientY,
         id: mirror.getId(target as Node),
         timeOffset: Date.now() - timeBaseline,
-        moveType: evt.type
+        moveType: evt.type,
       });
       // it is possible DragEvent is undefined even on devices
       // that support event 'drag'
@@ -235,7 +235,6 @@ function initMoveObserver({
       trailing: false,
     },
   );
-
 
   const handlers = [
     on('mousemove', updatePosition, doc),
@@ -280,8 +279,8 @@ function initMouseInteractionObserver({
         return;
       }
       const id = mirror.getId(target);
-      let _text = ''
-      if ((target as HTMLElement).innerText){
+      let _text = '';
+      if ((target as HTMLElement).innerText) {
         _text = (target as HTMLElement).innerText;
       }
       const { clientX, clientY } = e;

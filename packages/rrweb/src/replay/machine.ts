@@ -171,7 +171,13 @@ export function createPlayerService(
           };
         }),
         play(ctx) {
-          const { timer, events, baselineTime, lastPlayedEvent, willStopByStep, } = ctx;
+          const {
+            timer,
+            events,
+            baselineTime,
+            lastPlayedEvent,
+            willStopByStep,
+          } = ctx;
           timer.clear();
 
           for (const event of events) {
@@ -208,7 +214,7 @@ export function createPlayerService(
                 // eslint-disable-next-line no-empty
                 (event.data as mouseInteractionData).source == 2 &&
                 (event.data as mouseInteractionData).type == 2
-              // eslint-disable-next-line no-empty
+                // eslint-disable-next-line no-empty
               ) {
               } else {
                 continue;
@@ -246,7 +252,10 @@ export function createPlayerService(
           }
           for (const bundleArr of bundleStore.values()) {
             // 将所有的 bundle Event 使用 applyEventsSynchronously 处理
-            const neededInBundle = discardPriorSnapshots(bundleArr, bundleArr[0].timestamp + 1);
+            const neededInBundle = discardPriorSnapshots(
+              bundleArr,
+              bundleArr[0].timestamp + 1,
+            );
             if (!neededInBundle.length) {
               continue;
             }

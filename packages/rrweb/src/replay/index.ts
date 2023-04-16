@@ -62,7 +62,7 @@ import {
   styleSheetRuleData,
   styleDeclarationData,
   adoptedStyleSheetData,
-  mouseInteractionData
+  mouseInteractionData,
 } from '@rrweb/types';
 import {
   polyfill,
@@ -169,8 +169,8 @@ export class Replayer {
   /**用于控制单步播放，开启后，会在接下来的第二次动作时停止 */
   private _willStopByStep: boolean | null = false;
 
-   /**用于控制交互暂停后，等待几秒后自动播放的时间 */
-   private gLobalAutoPlayTime = -1;
+  /**用于控制交互暂停后，等待几秒后自动播放的时间 */
+  private gLobalAutoPlayTime = -1;
 
   constructor(
     events: Array<eventWithTime | string>,
@@ -494,7 +494,7 @@ export class Replayer {
    * @param timeOffset - number
    */
   public play(timeOffset = 0) {
-    console.error('--play',this.getTotalInteractionEvents())
+    console.error('--play', this.getTotalInteractionEvents());
     if (this.service.state.matches('paused')) {
       this.service.send({ type: 'PLAY', payload: { timeOffset } });
     } else {
@@ -557,13 +557,13 @@ export class Replayer {
     this.timer.addInteractionCallback(this.canInteraction.bind(this));
   }
 
-  private playStepTime: ReturnType<typeof setTimeout> ;
+  private playStepTime: ReturnType<typeof setTimeout>;
 
   private canInteraction(event: eventWithTime) {
     this.pause();
     clearTimeout(this.playStepTime);
     const data = event.data as mouseInteractionData;
-    const target = (this.mirror.getNode(data.id) as unknown) as HTMLElement;
+    const target = this.mirror.getNode(data.id) as unknown as HTMLElement;
 
     let rectDom = {};
     if (target && data.id > 0) {
@@ -571,7 +571,6 @@ export class Replayer {
     }
     this.setInteraction(false);
 
-    
     // setTimeout(() => {
     // console.error('canInteraction-settimeout',this.getCurrentTime());
     // // this.play(this.getCurrentTime());
@@ -603,10 +602,11 @@ export class Replayer {
     //       reactDom.width * scale,
     //       reactDom.height * scale,
     //     );
-    const autoPlayTime = (event.data as mouseInteractionData).editParams?.autoPlayTime;
-    const skipInteractive = (event.data as mouseInteractionData).editParams?.skipInteractive;
-    const uniqueId =  event.uniqueId
-    
+    const autoPlayTime = (event.data as mouseInteractionData).editParams
+      ?.autoPlayTime;
+    const skipInteractive = (event.data as mouseInteractionData).editParams
+      ?.skipInteractive;
+    const uniqueId = event.uniqueId;
 
     this.emitter.emit(ReplayerEvents.MouseCanInteraction, {
       uniqueId,
@@ -617,24 +617,21 @@ export class Replayer {
       currentTime: this.getCurrentTime(),
       autoPlayTime,
       skipInteractive,
-      
     });
 
     const currentBackTime = this.getCurrentTime();
 
-
-    if(autoPlayTime ) {
+    if (autoPlayTime) {
       this.playStepTime = setTimeout(() => {
         this.playStep(currentBackTime);
         // this.setInteraction(false);
       }, autoPlayTime);
-    }else if(this.gLobalAutoPlayTime && this.gLobalAutoPlayTime > 0){
+    } else if (this.gLobalAutoPlayTime && this.gLobalAutoPlayTime > 0) {
       this.playStepTime = setTimeout(() => {
         this.playStep(currentBackTime);
         // this.setInteraction(false);
       }, this.gLobalAutoPlayTime);
     }
-
   }
 
   public playStep(timeOffset = 0, forceStop = false) {
@@ -648,7 +645,7 @@ export class Replayer {
     this.play(timeOffset);
   }
 
-  public setGLobalAutoPlayTime(delay:number){
+  public setGLobalAutoPlayTime(delay: number) {
     this.gLobalAutoPlayTime = delay;
   }
 
@@ -670,15 +667,13 @@ export class Replayer {
     return this.service.state.context.totalInteractionEvents;
   }
 
-
-  public setTotalEvents(events: Array<eventWithTime>){
-    if(Array.isArray(events)){
-      if(this.service.state.context.events.length === events.length){
+  public setTotalEvents(events: Array<eventWithTime>) {
+    if (Array.isArray(events)) {
+      if (this.service.state.context.events.length === events.length) {
         this.service.state.context.events = events;
       }
     }
   }
-
 
   public getTotalEvents() {
     const events = this.service.state.context.events;
@@ -1234,7 +1229,11 @@ export class Replayer {
   }
 
   private applyIncremental(
-    e: incrementalSnapshotEvent & { timestamp: number; uniqueId:number, delay?: number,},
+    e: incrementalSnapshotEvent & {
+      timestamp: number;
+      uniqueId: number;
+      delay?: number;
+    },
     isSync: boolean,
   ) {
     const { data: d } = e;
@@ -1293,15 +1292,14 @@ export class Replayer {
           //即将到来的点击事件的timestamp ，小于计算出来的baselineTime。
           //导致点击事件被标识为同步，没有得到执行
           if (d.type === MouseInteractions.Click) {
-          // console.error('MouseInteractions.Click - isSync',this.willStopByStep);
+            // console.error('MouseInteractions.Click - isSync',this.willStopByStep);
 
             if (this.willStopByStep) {
-
               this.setInteraction(true);
               this.willStopByStep = false;
               this.service.state.context.willStopByStep = false;
             }
-            console.error('--',d,'MouseInteraction',target);
+            console.error('--', d, 'MouseInteraction', target);
             const targe = target as unknown as HTMLElement;
             // targe.style.border = '2mm ridge rgba(101, 110, 20, .6)'
           }
@@ -1312,7 +1310,7 @@ export class Replayer {
         if (d.type === MouseInteractions.Click) {
           // console.error('MouseInteractions.Click',this.willStopByStep);
           if (this.willStopByStep) {
-          // console.error('MouseInteractions.Click 相反设置',this.willStopByStep);
+            // console.error('MouseInteractions.Click 相反设置',this.willStopByStep);
             this.setInteraction(true);
             this.willStopByStep = false;
             this.service.state.context.willStopByStep = false;

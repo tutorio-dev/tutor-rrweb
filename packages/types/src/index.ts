@@ -166,13 +166,12 @@ export type event =
   | customEvent
   | pluginEvent;
 
-  export type eventWithTime = event & {
-    timestamp: number;
-    uniqueId:number,
-    delay?: number;
-    isBundle ?: boolean;
-  };
-  
+export type eventWithTime = event & {
+  timestamp: number;
+  uniqueId: number;
+  delay?: number;
+  isBundle?: boolean;
+};
 
 export type canvasEventWithTime = eventWithTime & {
   type: EventType.IncrementalSnapshot;
@@ -408,7 +407,7 @@ type mouseInteractionParam = {
   id: number;
   x: number;
   y: number;
-  innerText?: string,
+  innerText?: string;
   editParams?: editParams;
 };
 
@@ -416,7 +415,6 @@ type editParams = {
   skipInteractive?: boolean;
   autoPlayTime?: number;
 };
-
 
 export type mouseInteractionCallBack = (d: mouseInteractionParam) => void;
 
@@ -624,7 +622,7 @@ export type playerMetaData = {
 export type actionWithDelay = {
   doAction: () => void;
   delay: number;
-  event?: eventWithTime
+  event?: eventWithTime;
 };
 
 export type Handler = (event?: unknown) => void;
@@ -657,7 +655,7 @@ export enum ReplayerEvents {
   StateChange = 'state-change',
   PlayBack = 'play-back',
   Destroy = 'destroy',
-  MouseCanInteraction = 'mouse-can-interaction',//表示可以开始交互了
+  MouseCanInteraction = 'mouse-can-interaction', //表示可以开始交互了
 }
 
 export type KeepIframeSrcFn = (src: string) => boolean;
