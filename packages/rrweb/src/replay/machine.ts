@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/restrict-plus-operands */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { createMachine, interpret, assign, StateMachine } from '@xstate/fsm';
 import type { playerConfig } from '../types';
 import {
@@ -6,11 +10,14 @@ import {
   EventType,
   Emitter,
   IncrementalSource,
+  mouseInteractionData,
 } from '@rrweb/types';
 import { Timer, addDelay } from './timer';
 
 export type PlayerContext = {
   events: eventWithTime[];
+  totalInteractionEvents?: eventWithTime[];
+  willStopByStep?: boolean;
   timer: Timer;
   timeOffset: number;
   baselineTime: number;
@@ -164,7 +171,7 @@ export function createPlayerService(
           };
         }),
         play(ctx) {
-          const { timer, events, baselineTime, lastPlayedEvent } = ctx;
+          const { timer, events, baselineTime, lastPlayedEvent, willStopByStep, } = ctx;
           timer.clear();
 
           for (const event of events) {
@@ -185,7 +192,7 @@ export function createPlayerService(
           if (baselineTime < (lastPlayedTimestamp || 0)) {
             emitter.emit(ReplayerEvents.PlayBack);
           }
-
+          const bundleStore: Map<number, eventWithTime[]> = new Map();
           const syncEvents = new Array<eventWithTime>();
           for (const event of neededEvents) {
             if (
@@ -194,19 +201,63 @@ export function createPlayerService(
               (event.timestamp <= lastPlayedTimestamp ||
                 event === lastPlayedEvent)
             ) {
-              continue;
+              //对于步进播放，可能出现mousedown 和click 同时进行，之前的判断会导致timestamp 一样的情况时，click 被过滤了
+              if (
+                willStopByStep &&
+                event.timestamp == lastPlayedTimestamp &&
+                // eslint-disable-next-line no-empty
+                (event.data as mouseInteractionData).source == 2 &&
+                (event.data as mouseInteractionData).type == 2
+              // eslint-disable-next-line no-empty
+              ) {
+              } else {
+                continue;
+              }
             }
             if (event.timestamp < baselineTime) {
               syncEvents.push(event);
             } else {
-              const castFn = getCastFn(event, false);
-              timer.addAction({
-                doAction: () => {
-                  castFn();
-                },
-                delay: event.delay!,
-              });
+              // if (
+              //   // eslint-disable-next-line no-empty
+              //   (event.data as mouseInteractionData).source == 2 &&
+              //   (event.data as mouseInteractionData).type == 2
+              // // eslint-disable-next-line no-empty
+              // ) {
+              //   console.error('play-添加元素', event)
+              // }
+              if (event.isBundle) {
+                // Bundle Event 共享同样的时间戳，因此提取出来做性能优化
+                if (bundleStore.has(event.timestamp)) {
+                  bundleStore.get(event.timestamp)?.push(event);
+                } else {
+                  bundleStore.set(event.timestamp, [event]);
+                }
+              } else {
+                const castFn = getCastFn(event, false);
+                timer.addAction({
+                  doAction: () => {
+                    castFn();
+                  },
+                  delay: event.delay!,
+                  event: event,
+                });
+              }
             }
+          }
+          for (const bundleArr of bundleStore.values()) {
+            // 将所有的 bundle Event 使用 applyEventsSynchronously 处理
+            const neededInBundle = discardPriorSnapshots(bundleArr, bundleArr[0].timestamp + 1);
+            if (!neededInBundle.length) {
+              continue;
+            }
+            timer.addAction({
+              doAction: () => {
+                console.log('### replay bundle events', neededInBundle.length);
+                applyEventsSynchronously(neededInBundle);
+                emitter.emit(ReplayerEvents.Flush);
+              },
+              delay: neededInBundle[0].delay!,
+            });
           }
           applyEventsSynchronously(syncEvents);
           emitter.emit(ReplayerEvents.Flush);

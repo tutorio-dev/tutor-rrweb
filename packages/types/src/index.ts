@@ -166,10 +166,13 @@ export type event =
   | customEvent
   | pluginEvent;
 
-export type eventWithTime = event & {
-  timestamp: number;
-  delay?: number;
-};
+  export type eventWithTime = event & {
+    timestamp: number;
+    uniqueId:number,
+    delay?: number;
+    isBundle ?: boolean;
+  };
+  
 
 export type canvasEventWithTime = eventWithTime & {
   type: EventType.IncrementalSnapshot;
@@ -265,14 +268,14 @@ export type hooksParam = {
 };
 
 // https://dom.spec.whatwg.org/#interface-mutationrecord
-export type mutationRecord = Readonly<{
+export type mutationRecord = {
   type: string;
   target: Node;
   oldValue: string | null;
   addedNodes: NodeList;
   removedNodes: NodeList;
   attributeName: string | null;
-}>;
+};
 
 export type textCursor = {
   node: Node;
@@ -339,6 +342,7 @@ export type mousePosition = {
   y: number;
   id: number;
   timeOffset: number;
+  moveType?: string;
 };
 
 export type mouseMovePos = {
@@ -404,7 +408,15 @@ type mouseInteractionParam = {
   id: number;
   x: number;
   y: number;
+  innerText?: string,
+  editParams?: editParams;
 };
+
+type editParams = {
+  skipInteractive?: boolean;
+  autoPlayTime?: number;
+};
+
 
 export type mouseInteractionCallBack = (d: mouseInteractionParam) => void;
 
@@ -612,6 +624,7 @@ export type playerMetaData = {
 export type actionWithDelay = {
   doAction: () => void;
   delay: number;
+  event?: eventWithTime
 };
 
 export type Handler = (event?: unknown) => void;
@@ -644,6 +657,7 @@ export enum ReplayerEvents {
   StateChange = 'state-change',
   PlayBack = 'play-back',
   Destroy = 'destroy',
+  MouseCanInteraction = 'mouse-can-interaction',//表示可以开始交互了
 }
 
 export type KeepIframeSrcFn = (src: string) => boolean;

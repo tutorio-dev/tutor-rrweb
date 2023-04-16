@@ -109,6 +109,9 @@ export function diff(
   rrnodeMirror: Mirror = (newTree as RRDocument).mirror ||
     (newTree.ownerDocument as RRDocument).mirror,
 ) {
+  if (oldTree.nodeName === '#text') {
+    return;
+  }
   oldTree = diffBeforeUpdatingChildren(
     oldTree,
     newTree,
@@ -335,11 +338,22 @@ function diffProps(
           ctx.drawImage(image, 0, 0, image.width, image.height);
         }
       };
-    } else oldTree.setAttribute(name, newValue);
+    } else {
+      oldTree.setAttribute && oldTree.setAttribute(name, newValue);
+    }
+
   }
 
-  for (const { name } of Array.from(oldAttributes))
+  if(oldAttributes){
+    for (const { name } of Array.from(oldAttributes))
     if (!(name in newAttributes)) oldTree.removeAttribute(name);
+  }else{
+    console.error('oldAttributes不存在',oldAttributes);
+  }
+
+  
+
+  
 
   newTree.scrollLeft && (oldTree.scrollLeft = newTree.scrollLeft);
   newTree.scrollTop && (oldTree.scrollTop = newTree.scrollTop);

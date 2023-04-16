@@ -39,11 +39,31 @@ import {
   unregisterErrorHandler,
 } from './error-handler';
 
+let _id = 0;
 function wrapEvent(e: event): eventWithTime {
+  _id++;
+  const nonId = Number(genNonDuplicateID(_id, 21));
   return {
     ...e,
     timestamp: Date.now(),
+    uniqueId: nonId,
   };
+}
+
+/**
+ * 生成一个用不重复的ID
+ * @param { Number } randomLength
+ */
+export function genNonDuplicateID(
+  id: number,
+  randomLength: number | undefined,
+) {
+  return Number(
+    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+    _id + '' + Math.random().toString().substr(2, randomLength) + Date.now(),
+  )
+    .toString(10)
+    .replace(/[a-z+.]/g, '');
 }
 
 let wrappedEmit!: (e: eventWithTime, isCheckout?: boolean) => void;

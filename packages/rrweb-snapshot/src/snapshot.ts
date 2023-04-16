@@ -29,7 +29,29 @@ const tagNameRegex = new RegExp('[^a-z0-9-_:]');
 export const IGNORED_NODE = -2;
 
 export function genId(): number {
-  return _id++;
+  _id++;
+  const nonId = genNonDuplicateID(_id, 21);
+  // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+  const id = Number(nonId);
+  // console.error('这里是生成id 的地方', id);
+  return id;
+  // return _id ++;
+}
+
+/**
+ * 生成一个用不重复的ID
+ * @param { Number } randomLength
+ */
+export function genNonDuplicateID(
+  id: number,
+  randomLength: number | undefined,
+) {
+  return Number(
+    // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+    _id + '' + Math.random().toString().substr(2, randomLength) + Date.now(),
+  )
+    .toString(10)
+    .replace(/[a-z+.]/g, '');
 }
 
 function getValidTagName(element: HTMLElement): string {
@@ -91,7 +113,7 @@ export function absoluteToStylesheet(
     ) => {
       const filePath = path1 || path2 || path3;
       const maybeQuote = quote1 || quote2 || '';
-      if (!filePath) {
+      if (!filePath || filePath.includes('chrome-extension://')) {
         return origin;
       }
       if (URL_PROTOCOL_MATCH.test(filePath) || URL_WWW_MATCH.test(filePath)) {
@@ -215,9 +237,11 @@ function isSVGElement(el: Element): boolean {
 
 function getHref() {
   // return a href without hash
-  const a = document.createElement('a');
-  a.href = '';
-  return a.href;
+  // const a = document.createElement('a');
+  // a.href = '';
+  // return a.href;
+  return location.origin + location.pathname;
+
 }
 
 export function transformAttribute(
@@ -535,6 +559,33 @@ function getRootId(doc: Document, mirror: Mirror): number | undefined {
   return docId === 1 ? undefined : docId;
 }
 
+function blobToBase64(blob:Blob): Promise<string> {
+  return new Promise((resolve, _) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function getResourceByUrl(url:string, encoding: 'base64' | 'string'): Promise<string>{
+  if (!url) {
+    throw new Error('invalid url');
+  }
+  const response = await fetch(url, {
+    method: 'get',
+    cache: 'force-cache'
+  });
+  if (!response.ok) {
+    throw new Error('Cannot fetch resource');
+  }
+  if (encoding === 'base64') {
+    const base64 = await blobToBase64(await response.blob());
+    return base64;
+  }
+  const text =  await response.text();
+  return text;
+}
+
 function serializeTextNode(
   n: Text,
   options: {
@@ -560,9 +611,11 @@ function serializeTextNode(
         // to _only_ include the current rule(s) added by the text node.
         // So we'll be conservative and keep textContent as-is.
       } else if ((n.parentNode as HTMLStyleElement).sheet?.cssRules) {
-        textContent = stringifyStyleSheet(
-          (n.parentNode as HTMLStyleElement).sheet!,
-        );
+               // 总是使用 TextContent
+        // textContent = stringifyStyleSheet(
+        //   (n.parentNode as HTMLStyleElement).sheet!,
+        // );
+
       }
     } catch (err) {
       console.warn(
@@ -645,8 +698,9 @@ function serializeElementNode(
   }
   // remote css
   if (tagName === 'link' && inlineStylesheet) {
+    const styleHref = (n as HTMLLinkElement).href || '';
     const stylesheet = Array.from(doc.styleSheets).find((s) => {
-      return s.href === (n as HTMLLinkElement).href;
+      return s.href === styleHref;
     });
     let cssText: string | null = null;
     if (stylesheet) {
@@ -656,6 +710,13 @@ function serializeElementNode(
       delete attributes.rel;
       delete attributes.href;
       attributes._cssText = absoluteToStylesheet(cssText, stylesheet!.href!);
+    }else {
+      // fallback
+      getResourceByUrl(styleHref, 'string').then((data)=> {
+        attributes._cssText = absoluteToStylesheet(data, styleHref);
+        // console.log('css fetch fallback', styleHref);
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+      }, function(error) {});
     }
   }
   // dynamic stylesheet
@@ -738,35 +799,47 @@ function serializeElementNode(
   }
   // save image offline
   if (tagName === 'img' && inlineImages) {
-    if (!canvasService) {
-      canvasService = doc.createElement('canvas');
-      canvasCtx = canvasService.getContext('2d');
-    }
+    // if (!canvasService) {
+    //   canvasService = doc.createElement('canvas');
+    //   canvasCtx = canvasService.getContext('2d');
+    // }
+
     const image = n as HTMLImageElement;
-    const oldValue = image.crossOrigin;
-    image.crossOrigin = 'anonymous';
-    const recordInlineImage = () => {
-      image.removeEventListener('load', recordInlineImage);
-      try {
-        canvasService!.width = image.naturalWidth;
-        canvasService!.height = image.naturalHeight;
-        canvasCtx!.drawImage(image, 0, 0);
-        attributes.rr_dataURL = canvasService!.toDataURL(
-          dataURLOptions.type,
-          dataURLOptions.quality,
-        );
-      } catch (err) {
-        console.warn(
-          `Cannot inline img src=${image.currentSrc}! Error: ${err as string}`,
-        );
-      }
-      oldValue
-        ? (attributes.crossOrigin = oldValue)
-        : image.removeAttribute('crossorigin');
-    };
-    // The image content may not have finished loading yet.
-    if (image.complete && image.naturalWidth !== 0) recordInlineImage();
-    else image.addEventListener('load', recordInlineImage);
+    // const start = Date.now();
+    getResourceByUrl(image.src, 'base64').then((base64)=> {
+      image.setAttribute('rr_dataURL', base64)
+      // console.log('imageResolve', Date.now() - start);
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+    }, function(error) {});
+   
+
+    // const oldValue = image.crossOrigin;
+    // image.crossOrigin = 'anonymous';
+    // const recordInlineImage = () => {
+    //   try {
+    //     canvasService!.width = image.naturalWidth;
+    //     canvasService!.height = image.naturalHeight;
+    //     canvasCtx!.drawImage(image, 0, 0);
+    //     // attributes.src = canvasService!.toDataURL(
+    //     //   dataURLOptions.type,
+    //     //   dataURLOptions.quality,
+    //     // );
+    //     image.setAttribute('rr_dataURL',canvasService!.toDataURL(
+    //       dataURLOptions.type,
+    //       dataURLOptions.quality,
+    //     ))
+    //   } catch (err) {
+    //     console.warn(
+    //       `Cannot inline img src=${image.currentSrc}! Error: ${err as string}`,
+    //     );
+    //   }
+    //   oldValue
+    //     ? (attributes.crossOrigin = oldValue)
+    //     : image.removeAttribute('crossorigin');
+    // };
+    // // The image content may not have finished loading yet.
+    // if (image.complete && image.naturalWidth !== 0) recordInlineImage();
+    // else image.onload = recordInlineImage;
   }
   // media elements
   if (tagName === 'audio' || tagName === 'video') {

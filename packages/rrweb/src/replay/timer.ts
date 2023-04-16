@@ -3,6 +3,8 @@ import {
   eventWithTime,
   EventType,
   IncrementalSource,
+  incrementalData,
+  mouseInteractionData,
 } from '@rrweb/types';
 
 export class Timer {
@@ -12,6 +14,8 @@ export class Timer {
   private actions: actionWithDelay[];
   private raf: number | true | null = null;
   private lastTimestamp: number;
+  private willInInteraction: boolean;
+  private inInteractionCallback: (...args: unknown[]) => unknown;
 
   constructor(
     actions: actionWithDelay[] = [],
@@ -22,6 +26,15 @@ export class Timer {
     this.actions = actions;
     this.speed = config.speed;
   }
+  
+  public set willInteraction(value: boolean) {
+    this.willInInteraction = value;
+  }
+
+  public addInteractionCallback(callback: (...args: unknown[]) => unknown) {
+    this.inInteractionCallback = callback;
+  }
+
   /**
    * Add an action, possibly after the timer starts.
    */
@@ -53,12 +66,34 @@ export class Timer {
     const time = performance.now();
     this.timeOffset += (time - this.lastTimestamp) * this.speed;
     this.lastTimestamp = time;
+    const { actions } = this;
     while (this.actions.length) {
       const action = this.actions[0];
 
       if (this.timeOffset >= action.delay) {
-        this.actions.shift();
-        action.doAction();
+        if (this.willInInteraction && action.event && action.event?.data)  {
+          //处于交互模式时，下次暂停
+          //skipInteractive 为真的情况下，此次交互事件不用暂停
+          // console.error(action.event, 'inInteractionCallback-----2');
+          if (
+            (action.event?.data as incrementalData).source == 2 &&
+            (action.event?.data as mouseInteractionData).type == 2 &&
+            !(action.event?.data as mouseInteractionData).editParams
+              ?.skipInteractive
+          ) {
+            //表明是click 事件，全部类型参考 MouseInteractions
+            this.inInteractionCallback(action.event);
+            return;
+          } else {
+            //交互模式下，直到找到下一次可交互事件，一直播放
+            actions.shift();
+            action.doAction();
+          }
+        } else {
+          //交互模式下不继续播放
+          actions.shift();
+          action.doAction();
+        }
       } else {
         break;
       }

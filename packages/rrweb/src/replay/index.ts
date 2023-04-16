@@ -62,6 +62,7 @@ import {
   styleSheetRuleData,
   styleDeclarationData,
   adoptedStyleSheetData,
+  mouseInteractionData
 } from '@rrweb/types';
 import {
   polyfill,
@@ -164,6 +165,12 @@ export class Replayer {
 
   // Similar to the reason for constructedStyleMutations.
   private adoptedStyleSheets: adoptedStyleSheetData[] = [];
+
+  /**用于控制单步播放，开启后，会在接下来的第二次动作时停止 */
+  private _willStopByStep: boolean | null = false;
+
+   /**用于控制交互暂停后，等待几秒后自动播放的时间 */
+   private gLobalAutoPlayTime = -1;
 
   constructor(
     events: Array<eventWithTime | string>,
@@ -342,6 +349,7 @@ export class Replayer {
         timeOffset: 0,
         baselineTime: 0,
         lastPlayedEvent: null,
+        willStopByStep: false,
       },
       {
         getCastFn: this.getCastFn,
@@ -486,6 +494,7 @@ export class Replayer {
    * @param timeOffset - number
    */
   public play(timeOffset = 0) {
+    console.error('--play',this.getTotalInteractionEvents())
     if (this.service.state.matches('paused')) {
       this.service.send({ type: 'PLAY', payload: { timeOffset } });
     } else {
@@ -496,6 +505,7 @@ export class Replayer {
       ?.getElementsByTagName('html')[0]
       ?.classList.remove('rrweb-paused');
     this.emitter.emit(ReplayerEvents.Start);
+    clearTimeout(this.playStepTime);
   }
 
   public pause(timeOffset?: number) {
@@ -518,6 +528,7 @@ export class Replayer {
     );
     this.play(timeOffset);
     this.emitter.emit(ReplayerEvents.Resume);
+    this.setInteraction(false);
   }
 
   /**
@@ -528,6 +539,164 @@ export class Replayer {
     this.pause();
     this.config.root.removeChild(this.wrapper);
     this.emitter.emit(ReplayerEvents.Destroy);
+  }
+
+  public set willStopByStep(value: boolean) {
+    // console.error('设置 willStopByStep ', value)
+    this._willStopByStep = value;
+  }
+
+  public get willStopByStep() {
+    // console.error('获取 willStopByStep ', this._willStopByStep)
+    return !!this._willStopByStep;
+  }
+
+  /**设置开启交互模式 ,开启后，会在下次点击动作时停止*/
+  public setInteraction(needInteraction = true) {
+    this.timer.willInteraction = needInteraction;
+    this.timer.addInteractionCallback(this.canInteraction.bind(this));
+  }
+
+  private playStepTime: ReturnType<typeof setTimeout> ;
+
+  private canInteraction(event: eventWithTime) {
+    this.pause();
+    clearTimeout(this.playStepTime);
+    const data = event.data as mouseInteractionData;
+    const target = (this.mirror.getNode(data.id) as unknown) as HTMLElement;
+
+    let rectDom = {};
+    if (target && data.id > 0) {
+      rectDom = target.getBoundingClientRect();
+    }
+    this.setInteraction(false);
+
+    
+    // setTimeout(() => {
+    // console.error('canInteraction-settimeout',this.getCurrentTime());
+    // // this.play(this.getCurrentTime());
+    // this.playStep(this.getTotalInteractionEvents()[4].delay)
+    // // if(this.testboo){
+    // //   return;
+    // // }
+    // // this.testboo =true;
+    // }, 3000);
+    // let drawcanvas = target.ownerDocument.createElement('canvas');
+    // // target.ownerDocument.body.appendChild(drawcanvas);
+    // target.ownerDocument.body.insertBefore(
+    //       drawcanvas,
+    //       target.ownerDocument.body.firstChild
+    //     );
+    //       drawcanvas.width = target.ownerDocument.body.clientWidth;
+    //       drawcanvas.height = target.ownerDocument.body.clientHeight;
+    //       drawcanvas.setAttribute(
+    //         'style',
+    //         'border: 1px solid #cccccc;position:fixed; left:0; top:0;',
+    //       );
+    //     const scale = 1.0 as const;
+
+    //        const ctx = drawcanvas.getContext('2d');
+    //     ctx!.fillStyle = '#ffc000';
+    //     ctx!.fillRect(
+    //       reactDom.x * scale,
+    //       reactDom.y,
+    //       reactDom.width * scale,
+    //       reactDom.height * scale,
+    //     );
+    const autoPlayTime = (event.data as mouseInteractionData).editParams?.autoPlayTime;
+    const skipInteractive = (event.data as mouseInteractionData).editParams?.skipInteractive;
+    const uniqueId =  event.uniqueId
+    
+
+    this.emitter.emit(ReplayerEvents.MouseCanInteraction, {
+      uniqueId,
+      target,
+      ...data,
+      rectDom,
+      eventIndex: this.getInteractionEventsIndex(event),
+      currentTime: this.getCurrentTime(),
+      autoPlayTime,
+      skipInteractive,
+      
+    });
+
+    const currentBackTime = this.getCurrentTime();
+
+
+    if(autoPlayTime ) {
+      this.playStepTime = setTimeout(() => {
+        this.playStep(currentBackTime);
+        // this.setInteraction(false);
+      }, autoPlayTime);
+    }else if(this.gLobalAutoPlayTime && this.gLobalAutoPlayTime > 0){
+      this.playStepTime = setTimeout(() => {
+        this.playStep(currentBackTime);
+        // this.setInteraction(false);
+      }, this.gLobalAutoPlayTime);
+    }
+
+  }
+
+  public playStep(timeOffset = 0, forceStop = false) {
+    if (forceStop) {
+      this.willStopByStep = false;
+      this.service.state.context.willStopByStep = false;
+      return;
+    }
+    this.willStopByStep = true;
+    this.service.state.context.willStopByStep = true;
+    this.play(timeOffset);
+  }
+
+  public setGLobalAutoPlayTime(delay:number){
+    this.gLobalAutoPlayTime = delay;
+  }
+
+  public getTotalInteractionEvents() {
+    const events = this.service.state.context.events;
+    if (this.service.state.context.totalInteractionEvents?.length) {
+      return this.service.state.context.totalInteractionEvents;
+    }
+    this.service.state.context.totalInteractionEvents = [];
+    for (const event of events) {
+      if (
+        (event.data as incrementalData).source ===
+          IncrementalSource.MouseInteraction &&
+        (event.data as mouseInteractionData).type === MouseInteractions.Click
+      ) {
+        this.service.state.context.totalInteractionEvents.push(event);
+      }
+    }
+    return this.service.state.context.totalInteractionEvents;
+  }
+
+
+  public setTotalEvents(events: Array<eventWithTime>){
+    if(Array.isArray(events)){
+      if(this.service.state.context.events.length === events.length){
+        this.service.state.context.events = events;
+      }
+    }
+  }
+
+
+  public getTotalEvents() {
+    const events = this.service.state.context.events;
+    return events;
+  }
+
+  private getInteractionEventsIndex(event: eventWithTime) {
+    this.getTotalInteractionEvents();
+    const evnets = this.service.state.context.totalInteractionEvents;
+    if (!evnets) {
+      return 0;
+    }
+    for (let i = 0; i < evnets.length; i++) {
+      if (event.timestamp === evnets[i].timestamp) {
+        return i + 1;
+      }
+    }
+    return 0;
   }
 
   public startLive(baselineTime?: number) {
@@ -1065,7 +1234,7 @@ export class Replayer {
   }
 
   private applyIncremental(
-    e: incrementalSnapshotEvent & { timestamp: number; delay?: number },
+    e: incrementalSnapshotEvent & { timestamp: number; uniqueId:number, delay?: number,},
     isSync: boolean,
   ) {
     const { data: d } = e;
@@ -1118,10 +1287,44 @@ export class Replayer {
          * Same as the situation of missing input target.
          */
         if (d.id === -1) {
+          const target = this.mirror.getNode(d.id);
+          //因为计时器精度问题，
+          //在playstep 的时候，有可能出现：
+          //即将到来的点击事件的timestamp ，小于计算出来的baselineTime。
+          //导致点击事件被标识为同步，没有得到执行
+          if (d.type === MouseInteractions.Click) {
+          // console.error('MouseInteractions.Click - isSync',this.willStopByStep);
+
+            if (this.willStopByStep) {
+
+              this.setInteraction(true);
+              this.willStopByStep = false;
+              this.service.state.context.willStopByStep = false;
+            }
+            console.error('--',d,'MouseInteraction',target);
+            const targe = target as unknown as HTMLElement;
+            // targe.style.border = '2mm ridge rgba(101, 110, 20, .6)'
+          }
           break;
         }
         const event = new Event(MouseInteractions[d.type].toLowerCase());
         const target = this.mirror.getNode(d.id);
+        if (d.type === MouseInteractions.Click) {
+          // console.error('MouseInteractions.Click',this.willStopByStep);
+          if (this.willStopByStep) {
+          // console.error('MouseInteractions.Click 相反设置',this.willStopByStep);
+            this.setInteraction(true);
+            this.willStopByStep = false;
+            this.service.state.context.willStopByStep = false;
+          }
+          // if(!this.hasexecute){
+          // this.setInteraction(true);
+          // this.hasexecute = true;
+          // }
+          // const targe = target as unknown as HTMLElement;
+
+          // targe.style && (targe.style.border = '2mm ridge rgba(211, 220, 50, .6)')
+        }
         if (!target) {
           return this.debugNodeNotFound(d, d.id);
         }

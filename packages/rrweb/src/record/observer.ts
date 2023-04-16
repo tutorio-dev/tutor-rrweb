@@ -202,10 +202,47 @@ function initMoveObserver({
       },
     ),
   );
+
+  const updatePosition2 = throttle<MouseEvent | TouchEvent | DragEvent>(
+    (evt) => {
+      console.error('被拖动',evt)
+      const target = getEventTarget(evt);
+      const { clientX, clientY } = isTouchEvent(evt)
+        ? evt.changedTouches[0]
+        : evt;
+      if (!timeBaseline) {
+        timeBaseline = Date.now();
+      }
+      positions.push({
+        x: clientX,
+        y: clientY,
+        id: mirror.getId(target as Node),
+        timeOffset: Date.now() - timeBaseline,
+        moveType: evt.type
+      });
+      // it is possible DragEvent is undefined even on devices
+      // that support event 'drag'
+      wrappedCb(
+        typeof DragEvent !== 'undefined' && evt instanceof DragEvent
+          ? IncrementalSource.Drag
+          : evt instanceof MouseEvent
+          ? IncrementalSource.MouseMove
+          : IncrementalSource.TouchMove,
+      );
+    },
+    threshold,
+    {
+      trailing: false,
+    },
+  );
+
+
   const handlers = [
     on('mousemove', updatePosition, doc),
     on('touchmove', updatePosition, doc),
     on('drag', updatePosition, doc),
+    on('dragend', updatePosition2, doc),
+    on('dragstart', updatePosition2, doc),
   ];
   return callbackWrapper(() => {
     handlers.forEach((h) => h());
@@ -243,12 +280,17 @@ function initMouseInteractionObserver({
         return;
       }
       const id = mirror.getId(target);
+      let _text = ''
+      if ((target as HTMLElement).innerText){
+        _text = (target as HTMLElement).innerText;
+      }
       const { clientX, clientY } = e;
       callbackWrapper(mouseInteractionCb)({
         type: MouseInteractions[eventKey],
         id,
         x: clientX,
         y: clientY,
+        innerText: _text,
       });
     };
   };
